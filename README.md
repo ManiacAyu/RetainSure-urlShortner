@@ -1,138 +1,98 @@
-```markdown
 # URL Shortener Service
 
 ## Overview
-A simple URL shortening service similar to bit.ly or tinyurl, built with Flask and in-memory storage. This service provides URL shortening, redirection, and analytics capabilities with thread-safe concurrent request handling.
+A simple URL shortening service similar to bit.ly or TinyURL, built with Flask and in-memory storage.  
+Features:
+- Convert long URLs into 6-character alphanumeric short codes
+- Redirect to original URLs with click tracking
+- View analytics (click count, creation timestamp)
+- Thread-safe concurrent handling
+- URL validation and normalization
+- Clear JSON API and error responses
 
-## Features
-- **URL Shortening**: Convert long URLs into 6-character alphanumeric short codes
-- **Smart Redirection**: Redirect users to original URLs with click tracking
-- **Analytics**: View detailed statistics including click counts and creation timestamps
-- **Thread-Safe**: Handles concurrent requests safely using Python threading locks
-- **Input Validation**: Validates URLs and normalizes them (adds https:// if missing)
-- **Error Handling**: Comprehensive error responses with appropriate HTTP status codes
+---
 
 ## Project Structure
+
 ```
 url-shortener/
 ├── app/
-│   ├── __init__.py          # Package initialization
-│   ├── main.py              # Flask application and API endpoints
-│   ├── models.py            # Data models and storage classes
-│   └── utils.py             # Utility functions (validation, code generation)
+│   ├── __init__.py        # makes app/ a Python package
+│   ├── main.py            # Flask app and endpoints
+│   ├── models.py          # URLMapping & URLStore classes
+│   └── utils.py           # URL validation & code generation
 ├── tests/
-│   └── test_basic.py        # Comprehensive test suite
-├── requirements.txt         # Python dependencies
-├── README.md               # Project documentation
-├── .gitignore              # Git ignore rules
-└── conftest.py             # Pytest configuration
+│   └── test_basic.py      # pytest test suite
+├── requirements.txt       # Python dependencies
+├── README.md              # this file
+├── .gitignore             # files/folders to ignore in Git
+└── conftest.py            # pytest configuration (adds project root to PYTHONPATH)
 ```
 
-## Technical Architecture
-
-### Storage System
-- **In-Memory Storage**: Uses Python dictionaries stored in server RAM
-- **Thread-Safe Operations**: All storage operations use threading locks
-- **Data Persistence**: Data exists only during server runtime (resets on restart)
-- **Performance**: O(1) lookup time for URL retrieval
-
-### API Endpoints
-1. **Health Check**: `GET /` and `GET /api/health`
-2. **Shorten URL**: `POST /api/shorten`
-3. **Redirect**: `GET /`
-4. **Analytics**: `GET /api/stats/`
+---
 
 ## Getting Started
 
 ### Prerequisites
-- Python 3.8 or higher
-- pip (Python package installer)
+- Python 3.8+
+- pip
 
-### Installation & Setup
+### Installation
 
-1. **Clone or download the project**
-   ```
-   git clone 
-   cd url-shortener
-   ```
-
-2. **Install dependencies**
-   ```
-   pip install -r requirements.txt
-   ```
-
-3. **Start the application**
-   ```
-   # Method 1: Using Flask CLI
-   python -m flask --app app.main run
-   
-   # Method 2: Direct execution
-   python app/main.py
-   
-   # Method 3: Using Python module
-   python -m app.main
-   ```
-
-4. **Verify the setup**
-   ```
-   # Test health endpoint
-   curl http://localhost:5000/
-   ```
-
-The API will be available at `http://localhost:5000`
-
-### Running Tests
 ```
-# Run all tests
-pytest tests/ -v
+# 1. Clone the repo
+git clone https://github.com/ManiacAyu/RetainSure-urlShortner.git
+cd RetainSure-urlShortner
 
-# Run with coverage
-pytest tests/ -v --cov=app
-
-# Run specific test file
-pytest tests/test_basic.py -v
+# 2. Install dependencies
+pip install -r requirements.txt
 ```
+
+### Running the Application
+
+```
+# Option A: Flask CLI
+export FLASK_APP=app.main      # Windows: set FLASK_APP=app.main
+export FLASK_ENV=development   # Windows: set FLASK_ENV=development
+flask run
+
+# Option B: Direct execution
+python app/main.py
+
+# Option C: As a module
+python -m app.main
+```
+
+By default, the API listens on `http://127.0.0.1:5000`.
+
+---
 
 ## API Documentation
 
-### 1. Health Check Endpoints
+### 1. Health Check
 
-**Basic Health Check**
+**GET /**  
+_Response 200_  
 ```
-GET /
-```
-**Response:**
-```
-{
-  "status": "healthy",
-  "service": "URL Shortener API"
-}
+{ "status": "healthy", "service": "URL Shortener API" }
 ```
 
-**API Health Check**
+**GET /api/health**  
+_Response 200_  
 ```
-GET /api/health
+{ "status": "ok", "message": "URL Shortener API is running" }
 ```
-**Response:**
-```
-{
-  "status": "ok",
-  "message": "URL Shortener API is running"
-}
-```
+
+---
 
 ### 2. Shorten URL
 
-**Endpoint:** `POST /api/shorten`
-
-**Request:**
+**POST /api/shorten**  
+_Request JSON_  
 ```
-curl -X POST http://localhost:5000/api/shorten \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://www.example.com/very/long/url"}'
+{ "url": "https://www.example.com/very/long/url" }
 ```
-
-**Response (201 Created):**
+_Response 201_  
 ```
 {
   "short_code": "abc123",
@@ -141,35 +101,27 @@ curl -X POST http://localhost:5000/api/shorten \
 }
 ```
 
-**Error Responses:**
-- `400 Bad Request`: Invalid or missing URL
-- `500 Internal Server Error`: Short code generation failure
+_Error Responses_  
+- 400 Bad Request: missing or invalid URL  
+- 500 Internal Server Error: code generation failure
 
-### 3. Redirect to Original URL
+---
 
-**Endpoint:** `GET /`
+### 3. Redirect
 
-**Example:**
-```
-curl -L http://localhost:5000/abc123
-```
+**GET /**  
+_Follows a 302 redirect to the original URL_
 
-**Response:** HTTP 302 redirect to original URL
+_Error Responses_  
+- 400 Bad Request: short code must be 6 alphanumeric chars  
+- 404 Not Found: short code not found
 
-**Error Responses:**
-- `400 Bad Request`: Invalid short code format
-- `404 Not Found`: Short code doesn't exist
+---
 
-### 4. Get Analytics
+### 4. Analytics
 
-**Endpoint:** `GET /api/stats/`
-
-**Example:**
-```
-curl http://localhost:5000/api/stats/abc123
-```
-
-**Response (200 OK):**
+**GET /api/stats/**  
+_Response 200_  
 ```
 {
   "url": "https://www.example.com/very/long/url",
@@ -179,119 +131,98 @@ curl http://localhost:5000/api/stats/abc123
 }
 ```
 
-**Error Responses:**
-- `400 Bad Request`: Invalid short code format
-- `404 Not Found`: Short code doesn't exist
+_Error Responses_  
+- 400 Bad Request: invalid short code format  
+- 404 Not Found: short code not found
+
+---
 
 ## Usage Examples
 
-### Complete Workflow Example
+### Complete Workflow
+
 ```
 # 1. Shorten a URL
-curl -X POST http://localhost:5000/api/shorten \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://www.github.com/user/very-long-repository-name"}'
+curl -X POST http://localhost:5000/api/shorten   -H "Content-Type: application/json"   -d '{"url": "https://www.github.com/user/very-long-repository-name"}'
 
 # Response: {"short_code": "k3mN9x", "short_url": "http://localhost:5000/k3mN9x", ...}
 
-# 2. Use the shortened URL (this increments click count)
+# 2. Use the shortened URL (increments click count)
 curl -L http://localhost:5000/k3mN9x
 
 # 3. Check analytics
 curl http://localhost:5000/api/stats/k3mN9x
-
-# Response: {"url": "https://www.github.com/...", "clicks": 1, "created_at": "..."}
 ```
 
-### URL Validation Features
+### URL Normalization
+
 ```
 # URLs without scheme are automatically normalized
-curl -X POST http://localhost:5000/api/shorten \
-  -H "Content-Type: application/json" \
-  -d '{"url": "www.example.com"}'
+curl -X POST http://localhost:5000/api/shorten   -H "Content-Type: application/json"   -d '{"url": "www.example.com"}'
 
 # Response will show: "original_url": "https://www.example.com"
 ```
 
+---
+
 ## Testing
 
 ### Test Coverage
-The project includes comprehensive tests covering:
-- ✅ Health check endpoints
-- ✅ Successful URL shortening
-- ✅ URL validation and normalization
-- ✅ Error handling (invalid URLs, missing data)
-- ✅ Redirect functionality
-- ✅ Analytics tracking
-- ✅ Click count accuracy
-- ✅ Concurrent request handling
-- ✅ Edge cases and error conditions
+✅ Health check endpoints  
+✅ URL shortening with validation  
+✅ Error handling (invalid URLs, missing data)  
+✅ Redirect functionality  
+✅ Analytics tracking  
+✅ Concurrent request handling  
+✅ Edge cases and error conditions
 
 ### Running Tests
+
 ```
-# Run all tests with verbose output
+# Run all tests
 pytest tests/ -v
 
-# Run specific test functions
-pytest tests/test_basic.py::test_shorten_url_success -v
+# With coverage report
+pytest --cov=app --cov-report=html
 
-# Run tests with coverage report
-pytest tests/ --cov=app --cov-report=html
+# Specific test
+pytest tests/test_basic.py::test_shorten_url_success -v
 ```
+
+---
+
+## Technical Details
+
+### Storage System
+- **In-Memory**: Python dictionaries in server RAM
+- **Thread-Safe**: Uses threading locks for concurrent access
+- **Performance**: O(1) lookups, ~250-350 bytes per URL
+- **Limitation**: Data lost on server restart
+
+### Design Decisions
+1. **6-Character Codes**: 62^6 ≈ 56 billion combinations
+2. **Thread Safety**: Proper locking for concurrent requests
+3. **URL Validation**: Multi-layer validation (regex + urlparse)
+4. **Auto-normalization**: Adds https:// if missing
+5. **Comprehensive Testing**: 12+ test cases covering core functionality
+
+---
 
 ## Configuration
 
-### Environment Variables
-The application uses the following default configurations:
-- **Host**: `0.0.0.0` (accepts connections from any IP)
-- **Port**: `5000`
-- **Debug Mode**: `True` (disable in production)
+### Default Settings
+- Host: `0.0.0.0` (accepts all connections)
+- Port: `5000`
+- Debug: `True` (disable in production)
 
 ### Customization
-You can modify the configuration in `app/main.py`:
+Edit `app/main.py`:
 ```
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 ```
 
-## Development
-
-### Code Organization
-- **`app/main.py`**: Flask application and all API endpoints
-- **`app/models.py`**: Data models (`URLMapping`) and storage class (`URLStore`)
-- **`app/utils.py`**: Utility functions for URL validation and short code generation
-- **`tests/test_basic.py`**: Comprehensive test suite
-
-### Key Design Decisions
-1. **In-Memory Storage**: Fast access times, simple implementation, suitable for assignment scope
-2. **Thread Safety**: Uses Python threading locks for concurrent request handling
-3. **6-Character Codes**: Alphanumeric codes provide 62^6 ≈ 56 billion possible combinations
-4. **URL Normalization**: Automatically adds https:// scheme if missing
-5. **Comprehensive Validation**: Multi-layer URL validation using regex and urlparse
-
-### Performance Characteristics
-- **URL Shortening**: O(n) where n is max_attempts for unique code generation
-- **URL Retrieval**: O(1) dictionary lookup
-- **Click Tracking**: O(1) with thread-safe increment
-- **Memory Usage**: ~250-350 bytes per stored URL mapping
-
-## Limitations & Production Considerations
-
-### Current Limitations
-- **Data Persistence**: All data lost on server restart
-- **Single Instance**: Cannot scale across multiple servers
-- **Memory Constraints**: Limited by available server RAM
-- **No Authentication**: Open API without user management
-
-### Production Recommendations
-For production deployment, consider:
-- **Database Storage**: PostgreSQL, MySQL, or Redis for persistence
-- **Caching Layer**: Redis for high-performance lookups
-- **Load Balancing**: Multiple application instances
-- **Rate Limiting**: Prevent API abuse
-- **Authentication**: User accounts and API keys
-- **Custom Domains**: Support for branded short URLs
-- **Analytics Enhancement**: Detailed tracking and reporting
+---
 
 ## Troubleshooting
 
@@ -299,22 +230,22 @@ For production deployment, consider:
 
 **Import Errors**
 ```
-# Ensure you're in the correct directory
+# Ensure correct directory
 cd url-shortener
 
-# Create __init__.py if missing
+# Create missing __init__.py
 touch app/__init__.py
 
-# Add to Python path if needed
+# Add to Python path
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 ```
 
-**Port Already in Use**
+**Port in Use**
 ```
-# Find process using port 5000
+# Find process on port 5000
 lsof -i :5000
 
-# Kill the process or use different port
+# Use different port
 python -m flask --app app.main run --port 5001
 ```
 
@@ -323,27 +254,50 @@ python -m flask --app app.main run --port 5001
 # Clear pytest cache
 pytest --cache-clear tests/
 
-# Run tests with more verbose output
+# Verbose output
 pytest tests/ -v -s
 ```
+
+---
+
+## Production Considerations
+
+### Current Limitations
+- Data lost on restart (in-memory storage)
+- Single server instance only
+- No authentication or rate limiting
+- Memory constraints
+
+### Production Recommendations
+- **Database**: PostgreSQL/MySQL for persistence
+- **Caching**: Redis for high-performance lookups
+- **Scaling**: Load balancer with multiple instances
+- **Security**: Authentication, rate limiting, input sanitization
+- **Monitoring**: Logging, metrics, health checks
+
+---
 
 ## Contributing
 
 ### Development Setup
 1. Fork the repository
-2. Create a virtual environment: `python -m venv venv`
-3. Activate it: `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate` (Windows)
+2. Create virtual environment: `python -m venv venv`
+3. Activate: `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate` (Windows)
 4. Install dependencies: `pip install -r requirements.txt`
-5. Run tests to ensure everything works: `pytest tests/ -v`
+5. Run tests: `pytest tests/ -v`
 
 ### Code Style
-- Follow PEP 8 Python style guidelines
-- Use meaningful variable and function names
-- Include docstrings for all functions and classes
-- Maintain thread safety for all storage operations
+- Follow PEP 8 guidelines
+- Meaningful variable/function names
+- Docstrings for all functions and classes
+- Maintain thread safety
+
+---
 
 ## License
 
 This project is created for educational purposes as part of a coding assignment.
 
 **Built with ❤️ using Flask and Python**
+
+For questions or issues, check the troubleshooting section or run the test suite for expected behavior examples.
